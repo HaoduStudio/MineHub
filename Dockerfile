@@ -2,7 +2,7 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm install --global npm@12.0.2 && npm ci --ignore-scripts
+RUN npm install --global npm@12.0.2 && npm ci --ignore-scripts --replace-registry-host=always
 COPY . .
 RUN npx prisma generate && npx tsc -p tsconfig.app.json && npx tsc -p tsconfig.server.json && npx vp build
 

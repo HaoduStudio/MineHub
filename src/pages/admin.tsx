@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useState, type CSSProperties, type ReactNode } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   MoreVertical,
@@ -8,10 +8,18 @@ import {
   UserRound,
   Flag,
   ArrowUpRight,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  TriangleAlertIcon,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "@/components/ui/menu"
 import { SkinHead, TextureThumbnail } from "@/components/skin-preview"
@@ -38,6 +46,8 @@ import {
   useData,
   mutate,
   refresh,
+  queryClient,
+  BRAND_QUERY_KEY,
   type User,
   type Character,
   type Texture,
@@ -49,6 +59,18 @@ import {
   type Config,
   type Audit,
 } from "@/lib/api"
+import {
+  DARK_BG,
+  LIGHT_BG,
+  PRESETS,
+  buildThemeVars,
+  contrastGrade,
+  contrastRatio,
+  deriveDarkPrimary,
+  isHexColor,
+  resolveBrand,
+  type BrandEntry,
+} from "@/lib/theme"
 
 function DataTable({
   columns,
@@ -1454,6 +1476,197 @@ function AnnouncementForm({ initial }: { initial?: Announcement }) {
     </>
   )
 }
+function HexHint({ value }: { value: string }) {
+  if (!value || isHexColor(value)) return null
+  return <p className="form-error">需为 #RRGGBB 格式，或留空使用默认主题</p>
+}
+const CONTRAST_STATUS = {
+  success: { icon: CircleCheckIcon, title: "对比度符合 WCAG AA" },
+  warning: { icon: TriangleAlertIcon, title: "对比度仅满足大号文字 AA" },
+  error: { icon: CircleAlertIcon, title: "对比度未达 WCAG AA，仍可保存" },
+} as const
+function ContrastAlert({
+  entry,
+  background,
+}: {
+  entry: BrandEntry | null
+  background: string
+}) {
+  if (!entry) return null
+  const onBackground = contrastRatio(entry.primary, background)
+  const onPrimary = contrastRatio(entry.foreground, entry.primary)
+  const grades = [contrastGrade(onBackground), contrastGrade(onPrimary)]
+  const variant = grades.includes("fail")
+    ? "error"
+    : grades.includes("aa-large")
+      ? "warning"
+      : "success"
+  const { icon: Icon, title } = CONTRAST_STATUS[variant]
+  return (
+    <Alert variant={variant}>
+      <Icon aria-hidden="true" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>
+        {`主色与背景 ${onBackground.toFixed(2)}:1 · 主色上的文字 ${onPrimary.toFixed(2)}:1`}
+      </AlertDescription>
+    </Alert>
+  )
+}
+function ThemePreviewBox({
+  mode,
+  vars,
+}: {
+  mode: "light" | "dark"
+  vars: Record<string, string>
+}) {
+  return (
+    <figure>
+      <div
+        className={
+          mode === "dark" ? "theme-preview-box dark" : "theme-preview-box"
+        }
+        style={vars as CSSProperties}
+      >
+        <div className="tabs-nav">
+          <button type="button" className="active">
+            概览
+          </button>
+          <button type="button">角色</button>
+        </div>
+        <div className="theme-preview-row">
+          <Button type="button">保存</Button>
+          <Button type="button" variant="ghost">
+            取消
+          </Button>
+          <Badge>新</Badge>
+        </div>
+        <div className="theme-preview-row">
+          <Switch defaultChecked aria-label="预览开关" />
+          <Checkbox defaultChecked aria-label="预览复选框" />
+          <Input placeholder="角色名称" />
+        </div>
+        <Progress value={65} />
+      </div>
+      <figcaption>{mode === "dark" ? "暗黑模式" : "日间模式"}</figcaption>
+    </figure>
+  )
+}
+function ThemePanel({
+  draft,
+  setDraft,
+}: {
+  draft: Config
+  setDraft: (next: Config) => void
+}) {
+  const [text, setText] = useState({
+    themeColorLight: draft.themeColorLight,
+    themeColorDark: draft.themeColorDark,
+  })
+  const light = isHexColor(draft.themeColorLight) ? draft.themeColorLight : ""
+  const autoDark = draft.themeColorDark === ""
+  const dark = autoDark
+    ? light
+      ? deriveDarkPrimary(light)
+      : ""
+    : draft.themeColorDark
+  const vars = buildThemeVars(light, dark)
+  const brand = resolveBrand(light, dark)
+  const commit = (key: keyof typeof text, raw: string) => {
+    const value = raw.trim()
+    setText({ ...text, [key]: value })
+    if (value === "" || isHexColor(value))
+      setDraft({ ...draft, [key]: value.toLowerCase() })
+  }
+  return (
+    <>
+      <InputField
+        label="日间模式主题色"
+        value={text.themeColorLight}
+        onChange={(e) => commit("themeColorLight", e.target.value)}
+        placeholder="留空则使用默认黑白主题"
+        spellCheck={false}
+      />
+      <HexHint value={text.themeColorLight} />
+      <div className="color-field">
+        <input
+          type="color"
+          className="color-swatch"
+          value={light || "#000000"}
+          aria-label="日间模式主题色取色器"
+          onChange={(e) => commit("themeColorLight", e.target.value)}
+        />
+        <div className="preset-row">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              className="preset-swatch"
+              style={{ background: preset.value }}
+              title={preset.label}
+              aria-label={preset.label}
+              aria-pressed={light === preset.value}
+              data-active={light === preset.value ? "" : undefined}
+              onClick={() => commit("themeColorLight", preset.value)}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!light && !text.themeColorLight}
+          onClick={() => commit("themeColorLight", "")}
+        >
+          清除
+        </Button>
+      </div>
+      <ContrastAlert entry={brand?.light ?? null} background={LIGHT_BG} />
+      <label className="flex items-center gap-3">
+        <Checkbox
+          checked={autoDark}
+          disabled={!light}
+          onCheckedChange={(value) =>
+            commit("themeColorDark", value ? "" : deriveDarkPrimary(light))
+          }
+        />
+        根据日间色自动生成暗黑配色
+      </label>
+      <InputField
+        label="暗黑模式主题色"
+        value={autoDark ? dark : text.themeColorDark}
+        disabled={autoDark}
+        onChange={(e) => commit("themeColorDark", e.target.value)}
+        placeholder={light ? "自动生成中" : "需先设置日间模式主题色"}
+        spellCheck={false}
+      />
+      <HexHint value={text.themeColorDark} />
+      {!autoDark && (
+        <div className="color-field">
+          <input
+            type="color"
+            className="color-swatch"
+            value={dark || "#000000"}
+            aria-label="暗黑模式主题色取色器"
+            onChange={(e) => commit("themeColorDark", e.target.value)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => commit("themeColorDark", "")}
+          >
+            恢复自动生成
+          </Button>
+        </div>
+      )}
+      <ContrastAlert entry={brand?.dark ?? null} background={DARK_BG} />
+      <div className="theme-preview">
+        <ThemePreviewBox mode="light" vars={vars.light} />
+        <ThemePreviewBox mode="dark" vars={vars.dark} />
+      </div>
+    </>
+  )
+}
 export function AdminSettings() {
   const query = useData<Config>("/admin/settings")
   if (query.isPending) return <Loading />
@@ -1482,6 +1695,7 @@ function SettingsForm({ initial }: { initial: Config }) {
       <TabsNav
         tabs={[
           { label: "基本", value: "basic" },
+          { label: "主题", value: "theme" },
           { label: "认证页", value: "auth" },
           { label: "注册与角色", value: "accounts" },
           { label: "材质", value: "textures" },
@@ -1491,8 +1705,16 @@ function SettingsForm({ initial }: { initial: Config }) {
       <div className="form-section">
         <ActionForm
           onSubmit={async () => {
-            await mutate("/admin/settings", "PATCH", draft)
-            await refresh()
+            const result = await mutate<Config>(
+              "/admin/settings",
+              "PATCH",
+              draft
+            )
+            queryClient.setQueryData(["/public/settings"], result)
+            queryClient.setQueryData(BRAND_QUERY_KEY, result)
+            await queryClient.invalidateQueries({
+              predicate: (query) => query.queryKey[0] !== "/public/settings",
+            })
           }}
         >
           {tab === "basic" ? (
@@ -1519,6 +1741,8 @@ function SettingsForm({ initial }: { initial: Config }) {
                 }
               />
             </>
+          ) : tab === "theme" ? (
+            <ThemePanel draft={draft} setDraft={setDraft} />
           ) : tab === "auth" ? (
             <>
               <InputField
@@ -1570,10 +1794,12 @@ function SettingsForm({ initial }: { initial: Config }) {
                 }
               />
               <p className="form-hint">
-                该时长同时作为公开站点配置的浏览器缓存时间，期间后台修改不会立即对未登录访客生效；0 表示不缓存
+                该时长同时作为公开站点配置的浏览器缓存时间，期间后台修改不会立即对未登录访客生效；0
+                表示不缓存
               </p>
               <p className="form-hint">
-                默认图片来自 Wikimedia Commons（CC BY 3.0），替换为其他图片时请自行确认授权
+                默认图片来自 Wikimedia Commons（CC BY
+                3.0），替换为其他图片时请自行确认授权
               </p>
             </>
           ) : tab === "accounts" ? (

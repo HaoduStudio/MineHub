@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 type Theme = "dark" | "light" | "system"
 type ResolvedTheme = "dark" | "light"
@@ -226,4 +227,10 @@ export const useTheme = () => {
   }
 
   return context
+}
+
+export const useDark = () => {
+  const { theme } = useTheme()
+  const systemDark = useMediaQuery(COLOR_SCHEME_QUERY)
+  return theme === "dark" || (theme === "system" && systemDark)
 }

@@ -5,6 +5,35 @@
     <meta name="theme-color" content="#fafafa" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MineHub</title>
+    <script>
+      ;(function () {
+        var theme = "system"
+        var cache = null
+        try {
+          theme = localStorage.getItem("theme") || "system"
+          cache = JSON.parse(localStorage.getItem("minehub-brand") || "null")
+        } catch {
+          cache = null
+        }
+        var dark =
+          theme === "dark" ||
+          (theme !== "light" &&
+            matchMedia("(prefers-color-scheme: dark)").matches)
+        document.documentElement.classList.add(dark ? "dark" : "light")
+        if (cache && cache.css) {
+          var style = document.createElement("style")
+          style.id = "minehub-brand-boot"
+          style.textContent = cache.css
+          document.head.appendChild(style)
+        }
+        var color =
+          cache && cache.meta && (dark ? cache.meta.dark : cache.meta.light)
+        if (color)
+          document
+            .querySelector('meta[name="theme-color"]')
+            ?.setAttribute("content", color)
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -83,6 +83,7 @@ export const mutate = <T = unknown>(
   })
 export const useData = <T>(path: string, enabled = true) =>
   useQuery({ queryKey: [path], queryFn: () => api<T>(path), enabled })
+export const BRAND_QUERY_KEY = ["/public/settings", "brand"]
 export const refresh = () => queryClient.invalidateQueries()
 export type Page<T> = { items: T[]; total: number; page: number; limit: number }
 export type User = {
@@ -114,6 +115,8 @@ export type Config = {
   authImageLight: string
   authImageDark: string
   authImageCacheMinutes: number
+  themeColorLight: string
+  themeColorDark: string
 }
 export type Me = {
   user: User

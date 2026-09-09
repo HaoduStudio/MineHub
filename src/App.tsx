@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { queryClient } from "./lib/api"
 import { Layout } from "./components/layout"
+import { BrandTheme } from "./components/brand-theme"
 import { ToastProvider } from "./components/ui/toast"
 import { Loading } from "./components/common"
 import { AuthPage, TwoFactorPage, Entry, ErrorPage } from "./pages/auth"
@@ -78,6 +79,7 @@ const Audit = lazy(() =>
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <BrandTheme />
       <ToastProvider>
         <BrowserRouter>
           <Suspense fallback={<Loading />}>

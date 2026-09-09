@@ -2,8 +2,7 @@ import { useState, type ReactNode } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckCircle2, Mail } from "lucide-react"
 import { Brand } from "@/components/layout"
-import { useTheme } from "@/components/theme-provider"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {
   InputField,
@@ -36,11 +35,6 @@ export function Entry() {
       <Failure error={session.error} retry={() => void session.refetch()} />
     )
   return <Navigate to={session.data ? "/app" : "/login"} replace />
-}
-function useDark() {
-  const { theme } = useTheme()
-  const systemDark = useMediaQuery("(prefers-color-scheme: dark)")
-  return theme === "dark" || (theme === "system" && systemDark)
 }
 function AuthShell({ children }: { children: ReactNode }) {
   const { data: config } = useData<Config>("/public/settings")

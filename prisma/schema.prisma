@@ -287,6 +287,8 @@ model SiteSettings {
   authImageLight String @default("https://upload.wikimedia.org/wikipedia/commons/c/ca/Minecraft_-_Taiga.jpg")
   authImageDark String @default("https://upload.wikimedia.org/wikipedia/commons/c/cd/Screenshot_from_the_Minecraft_Nether.png")
   authImageCacheMinutes Int @default(60)
+  themeColorLight String @default("")
+  themeColorDark String @default("")
   updatedAt DateTime @updatedAt
 }
 

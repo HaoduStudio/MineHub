@@ -419,15 +419,14 @@ adminApi.post("/reports/:id/resolve", async (c) => {
   })
   return c.json({ success: true })
 })
-const safeLink = z
-  .url()
-  .refine((v) => {
-    try {
-      return ["https:", "http:"].includes(new URL(v).protocol)
-    } catch {
-      return false
-    }
-  })
+const safeLink = z.url().refine((v) => {
+  try {
+    return ["https:", "http:"].includes(new URL(v).protocol)
+  } catch {
+    return false
+  }
+})
+const hexColor = z.union([z.literal(""), z.string().regex(/^#[0-9a-f]{6}$/i)])
 const serverInput = z.object({
   key: z.string().regex(/^[a-z0-9_-]{1,48}$/),
   name: z.string().trim().min(1).max(64),
@@ -554,6 +553,8 @@ adminApi.patch("/settings", async (c) => {
       authImageLight: z.union([z.literal(""), safeLink]),
       authImageDark: z.union([z.literal(""), safeLink]),
       authImageCacheMinutes: z.number().int().min(0).max(10080),
+      themeColorLight: hexColor,
+      themeColorDark: hexColor,
     })
     .parse(await c.req.json())
   if (

@@ -871,9 +871,7 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
         "https://art.example.test/day.jpg"
       )
       expect(published.data.authImageDark).toBe("")
-      expect(published.headers.get("cache-control")).toBe(
-        "public, max-age=300"
-      )
+      expect(published.headers.get("cache-control")).toBe("public, max-age=300")
       expect(
         (
           await admin.call(
@@ -894,6 +892,48 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
           "cache-control"
         )
       ).toBe("no-store")
+    })
+    it("stores admin theme colours and rejects malformed hex values", async () => {
+      const current = await settings()
+      const patch = await admin.call(
+        "/api/v1/admin/settings",
+        { ...current, themeColorLight: "#1447e6", themeColorDark: "" },
+        "PATCH"
+      )
+      expect(patch.status, JSON.stringify(patch.data)).toBe(200)
+      expect(patch.data.themeColorLight).toBe("#1447e6")
+      const published = await guest.call("/api/v1/public/settings")
+      expect(published.data.themeColorLight).toBe("#1447e6")
+      expect(published.data.themeColorDark).toBe("")
+      for (const themeColorLight of ["#12345", "red", "#gggggg", "#1234567"])
+        expect(
+          (
+            await admin.call(
+              "/api/v1/admin/settings",
+              { ...patch.data, themeColorLight },
+              "PATCH"
+            )
+          ).status,
+          themeColorLight
+        ).toBe(400)
+      expect(
+        (
+          await admin.call(
+            "/api/v1/admin/settings",
+            { ...patch.data, themeColorLight: "", themeColorDark: "#94b6ff" },
+            "PATCH"
+          )
+        ).status
+      ).toBe(200)
+      const cleared = await admin.call(
+        "/api/v1/admin/settings",
+        { ...patch.data, themeColorLight: "", themeColorDark: "" },
+        "PATCH"
+      )
+      expect(cleared.status, JSON.stringify(cleared.data)).toBe(200)
+      const reset = await guest.call("/api/v1/public/settings")
+      expect(reset.data.themeColorLight).toBe("")
+      expect(reset.data.themeColorDark).toBe("")
     })
     it("fails closed with protocol-shaped errors when Redis is unavailable", async () => {
       redis.destroy()

@@ -29,6 +29,7 @@ model User {
   sessions Session[]
   accounts Account[]
   twoFactors TwoFactor[]
+  passkeys Passkey[]
   characters Character[]
   credentials GameCredential[]
   tokens GameToken[]
@@ -96,6 +97,22 @@ model TwoFactor {
   verified Boolean @default(true)
   failedVerificationCount Int @default(0)
   lockedUntil DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Passkey {
+  id String @id @default(uuid())
+  name String?
+  publicKey String
+  userId String
+  credentialID String @unique
+  counter Int
+  deviceType String
+  backedUp Boolean
+  transports String?
+  createdAt DateTime @default(now())
+  aaguid String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
 }

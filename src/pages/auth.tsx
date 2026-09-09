@@ -1,6 +1,11 @@
+import {
+  signInWithPasskey,
+  requirePasskeySupport,
+  passkeyError,
+} from "@/lib/auth-client"
 import { useState, type ReactNode } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
-import { CheckCircle2, Mail } from "lucide-react"
+import { CheckCircle2, Mail, Fingerprint } from "lucide-react"
 import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -68,6 +73,8 @@ export function AuthPage({
     [sent, setSent] = useState(false),
     [email, setEmail] = useState(params.get("email") ?? "")
   const { data: config } = useData<Config>("/public/settings")
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [passkeyFailure, setPasskeyFailure] = useState("")
   const titles = {
     login: "登录",
     register: "创建账户",
@@ -215,6 +222,39 @@ export function AuthPage({
                     required
                     minLength={12}
                   />
+                )}
+              </>
+            )}
+            {mode === "login" && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  loading={passkeyBusy}
+                  onClick={async () => {
+                    setPasskeyFailure("")
+                    setPasskeyBusy(true)
+                    try {
+                      requirePasskeySupport()
+                      const result = await signInWithPasskey()
+                      if (result.error)
+                        throw new Error(passkeyError(result.error))
+                      await refresh()
+                      void navigate("/app")
+                    } catch (error) {
+                      setPasskeyFailure(errorMessage(error))
+                    } finally {
+                      setPasskeyBusy(false)
+                    }
+                  }}
+                >
+                  <Fingerprint />
+                  使用通行密钥登录
+                </Button>
+                {passkeyFailure && (
+                  <p role="alert" className="form-error">
+                    {passkeyFailure}
+                  </p>
                 )}
               </>
             )}

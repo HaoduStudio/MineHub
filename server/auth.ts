@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { admin } from "better-auth/plugins/admin"
 import { twoFactor } from "better-auth/plugins/two-factor"
+import { passkey } from "@better-auth/passkey"
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { db, settings } from "./db"
 import { env } from "./env"
@@ -81,7 +82,27 @@ export const auth = betterAuth({
       "/two-factor/*": { window: 60, max: 5 },
     },
   },
-  plugins: [admin(), twoFactor({ issuer: "MineHub" })],
+  plugins: [
+    admin(),
+    twoFactor({ issuer: "MineHub" }),
+    passkey({
+      rpID: new URL(env.BETTER_AUTH_URL).hostname,
+      rpName: "MineHub",
+      origin: new URL(env.BETTER_AUTH_URL).origin,
+      authenticatorSelection: {
+        userVerification: "required",
+        residentKey: "required",
+      },
+      authentication: {
+        afterVerification: async ({ verification }) => {
+          if (!verification.authenticationInfo.userVerified)
+            throw new APIError("UNAUTHORIZED", {
+              message: "请使用设备 PIN、指纹或面容完成验证",
+            })
+        },
+      },
+    }),
+  ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (
@@ -121,6 +142,13 @@ export const auth = betterAuth({
       }
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/passkey/generate-authenticate-options") {
+        const options = ctx.context.returned as
+          | { userVerification?: string }
+          | undefined
+        if (options && !(options instanceof APIError))
+          options.userVerification = "required"
+      }
       const returned = ctx.context.returned as
         | { token?: string; user?: { id: string }; status?: boolean }
         | undefined

@@ -9,6 +9,12 @@ import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { LauncherConnect } from "@/components/launcher-connect"
 import { AvatarEditor } from "@/components/avatar-editor"
+import { Fingerprint, Plus } from "lucide-react"
+import {
+  authClient,
+  passkeyError,
+  requirePasskeySupport,
+} from "@/lib/auth-client"
 import {
   Heading,
   TabsNav,
@@ -22,6 +28,7 @@ import {
   date,
   Modal,
   notify,
+  formText,
 } from "@/components/common"
 import { authRequest, mutate, useData, refresh, type Me } from "@/lib/api"
 
@@ -183,6 +190,7 @@ function SecuritySettings({ me }: { me: Me }) {
           />
         </ActionForm>
       </section>
+      <PasskeySettings />
       <section className="form-section">
         <h2>两步验证</h2>
         {me.user.twoFactorEnabled ? (
@@ -241,6 +249,90 @@ function SecuritySettings({ me }: { me: Me }) {
         )}
       </section>
     </>
+  )
+}
+function PasskeySettings() {
+  const [adding, setAdding] = useState(false)
+  const passkeys = useQuery({
+    queryKey: ["passkeys"],
+    queryFn: async () => {
+      const result = await authClient.passkey.listUserPasskeys()
+      if (result.error) throw new Error(passkeyError(result.error))
+      return result.data ?? []
+    },
+  })
+  return (
+    <section className="form-section">
+      <div className="section-head">
+        <h2>通行密钥</h2>
+        <Button variant="outline" onClick={() => setAdding(true)}>
+          <Plus />
+          添加通行密钥
+        </Button>
+      </div>
+      <p className="form-hint mb-5">使用指纹、面容、设备 PIN 或安全密钥登录</p>
+      {passkeys.isPending ? (
+        <Loading />
+      ) : passkeys.error ? (
+        <Failure error={passkeys.error} retry={() => void passkeys.refetch()} />
+      ) : passkeys.data?.length ? (
+        passkeys.data.map((item) => (
+          <div className="inline-row gap-3" key={item.id}>
+            <Fingerprint className="size-5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong className="block break-all">
+                {item.name || "通行密钥"}
+              </strong>
+              <p className="form-hint">
+                添加于 {date(item.createdAt ? String(item.createdAt) : null)}
+              </p>
+            </div>
+            <Confirm
+              title="删除"
+              description="删除后，此通行密钥将无法用于登录"
+              action={async () => {
+                const result = await authClient.passkey.deletePasskey({
+                  id: item.id,
+                })
+                if (result.error) throw new Error(passkeyError(result.error))
+                await passkeys.refetch()
+              }}
+            />
+          </div>
+        ))
+      ) : (
+        <Empty text="还没有通行密钥" />
+      )}
+      <Modal
+        title="添加通行密钥"
+        description="为通行密钥命名，然后按照设备提示完成验证"
+        open={adding}
+        onOpenChange={setAdding}
+      >
+        <ActionForm
+          label="添加通行密钥"
+          success="通行密钥已添加"
+          onSubmit={async (form) => {
+            requirePasskeySupport()
+            const result = await authClient.passkey.addPasskey({
+              name: formText(form, "name").trim(),
+            })
+            if (result.error) throw new Error(passkeyError(result.error))
+            await passkeys.refetch()
+            setAdding(false)
+          }}
+        >
+          <InputField
+            name="name"
+            label="名称"
+            placeholder="例如：我的笔记本"
+            required
+            maxLength={64}
+            autoComplete="off"
+          />
+        </ActionForm>
+      </Modal>
+    </section>
   )
 }
 function GameSettings() {

@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { DEFAULT_HITOKOTO_URL, fetchHitokoto } from "@/lib/hitokoto"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckCircle2, Mail, Fingerprint } from "lucide-react"
 import { Captcha } from "@/components/captcha"
@@ -47,15 +49,37 @@ export function Entry() {
 function AuthShell({ children }: { children: ReactNode }) {
   const { data: config } = useData<Config>("/public/settings")
   const image = useDark() ? config?.authImageDark : config?.authImageLight
+  const captionMode = config?.authCaptionMode ?? "site"
+  const hitokotoUrl = config?.authHitokotoUrl || DEFAULT_HITOKOTO_URL
+  const quote = useQuery({
+    queryKey: ["auth-hitokoto", hitokotoUrl],
+    queryFn: ({ signal }) => fetchHitokoto(hitokotoUrl, signal),
+    enabled: !!config && captionMode === "hitokoto",
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const caption =
+    captionMode === "hidden"
+      ? ""
+      : captionMode === "custom"
+        ? config?.authCaptionText
+        : captionMode === "hitokoto"
+          ? quote.data
+          : config?.name || "MineHub"
   return (
     <div className="auth-page">
       <div className="auth-art">
         {image && <img src={image} alt="" />}
         <div className="auth-art-scrim" />
-        <div className="auth-art-caption">
-          <strong>{config?.name || "MineHub"}</strong>
-          {config?.description && <p>{config.description}</p>}
-        </div>
+        {caption && (
+          <div className="auth-art-caption">
+            <strong>{caption}</strong>
+            {captionMode === "site" && config?.description && (
+              <p>{config.description}</p>
+            )}
+          </div>
+        )}
       </div>
       <div className="auth-main">
         <div className="auth-body">{children}</div>

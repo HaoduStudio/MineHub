@@ -118,6 +118,9 @@ export type Config = {
   authImageLight: string
   authImageDark: string
   authImageCacheMinutes: number
+  authCaptionMode: "hidden" | "site" | "custom" | "hitokoto"
+  authCaptionText: string
+  authHitokotoUrl: string
   themeColorLight: string
   themeColorDark: string
   icpNumber: string

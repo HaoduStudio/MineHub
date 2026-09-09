@@ -937,6 +937,44 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
         )
       ).toBe("no-store")
     })
+    it("persists and publishes caption modes and validates provider settings", async () => {
+      const current = await settings()
+      for (const mode of ["hidden", "site", "custom", "hitokoto"]) {
+        const patch = await admin.call(
+          "/api/v1/admin/settings",
+          {
+            ...current,
+            authCaptionMode: mode,
+            authCaptionText: "自定义文案",
+            authHitokotoUrl: "https://quotes.example.test/?encode=text",
+          },
+          "PATCH"
+        )
+        expect(patch.status, JSON.stringify(patch.data)).toBe(200)
+        const published = await guest.call("/api/v1/public/settings")
+        expect(published.data.authCaptionMode).toBe(mode)
+        expect(published.data.authCaptionText).toBe("自定义文案")
+        expect(published.data.authHitokotoUrl).toBe(
+          "https://quotes.example.test/?encode=text"
+        )
+      }
+      for (const invalid of [
+        { authCaptionMode: "invalid" },
+        { authCaptionText: "x".repeat(501) },
+        { authHitokotoUrl: "javascript:alert(1)" },
+        { authHitokotoUrl: "not-a-url" },
+      ]) {
+        expect(
+          (
+            await admin.call(
+              "/api/v1/admin/settings",
+              { ...current, ...invalid },
+              "PATCH"
+            )
+          ).status
+        ).toBe(400)
+      }
+    })
     it("stores admin theme colours and rejects malformed hex values", async () => {
       const current = await settings()
       const patch = await admin.call(

@@ -591,6 +591,10 @@ button:disabled {
   );
 }
 .auth-art-caption {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-height: calc(100% - 80px);
+  overflow-y: auto;
   position: absolute;
   inset-inline: 44px;
   bottom: 40px;

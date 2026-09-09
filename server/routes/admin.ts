@@ -553,6 +553,11 @@ adminApi.patch("/settings", async (c) => {
       authImageLight: z.union([z.literal(""), safeLink]),
       authImageDark: z.union([z.literal(""), safeLink]),
       authImageCacheMinutes: z.number().int().min(0).max(10080),
+      authCaptionMode: z
+        .enum(["hidden", "site", "custom", "hitokoto"])
+        .optional(),
+      authCaptionText: z.string().trim().max(500).optional(),
+      authHitokotoUrl: z.string().trim().max(2048).pipe(safeLink).optional(),
       themeColorLight: hexColor,
       themeColorDark: hexColor,
       icpNumber: z.string().trim().max(64),

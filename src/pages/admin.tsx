@@ -1764,6 +1764,65 @@ function SettingsForm({ initial }: { initial: Config }) {
             <ThemePanel draft={draft} setDraft={setDraft} />
           ) : tab === "auth" ? (
             <>
+              <div className="form-field">
+                图片左下角文本
+                <SelectBox
+                  label="图片左下角文本"
+                  value={draft.authCaptionMode ?? "site"}
+                  onChange={(value) =>
+                    setDraft({
+                      ...draft,
+                      authCaptionMode: value as Config["authCaptionMode"],
+                    })
+                  }
+                  options={[
+                    { value: "hidden", label: "不显示" },
+                    { value: "site", label: "网站名称" },
+                    { value: "custom", label: "自定义文本" },
+                    { value: "hitokoto", label: "一言" },
+                  ]}
+                />
+              </div>
+              {draft.authCaptionMode === "custom" && (
+                <label className="form-field">
+                  自定义文本
+                  <Textarea
+                    maxLength={500}
+                    value={draft.authCaptionText ?? ""}
+                    onChange={(e) =>
+                      setDraft({ ...draft, authCaptionText: e.target.value })
+                    }
+                    placeholder="输入显示在图片左下角的文本"
+                  />
+                </label>
+              )}
+              {draft.authCaptionMode === "hitokoto" && (
+                <>
+                  <InputField
+                    label="一言 API 地址"
+                    type="url"
+                    required
+                    maxLength={2048}
+                    value={draft.authHitokotoUrl ?? "https://v1.hitokoto.cn/"}
+                    onChange={(e) =>
+                      setDraft({ ...draft, authHitokotoUrl: e.target.value })
+                    }
+                  />
+                  <p className="form-hint">
+                    默认使用官方一言
+                    API，可替换为支持跨域访问的第三方接口，返回纯文本或包含
+                    hitokoto 字段的 JSON；加载失败时隐藏文本
+                    {" · "}
+                    <a
+                      href="https://developer.hitokoto.cn/sentence/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      接口文档
+                    </a>
+                  </p>
+                </>
+              )}
               <InputField
                 label="日间模式图片链接"
                 value={draft.authImageLight}

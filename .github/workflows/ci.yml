@@ -47,7 +47,7 @@ jobs:
           key: ${{ runner.os }}-npm-12-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-12-
-      - run: npm ci
+      - run: npm ci --registry=https://registry.npmjs.org/ --replace-registry-host=always
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npx vp fmt --check

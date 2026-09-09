@@ -1,0 +1,50 @@
+name: MineHub
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: minehub
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: minehub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U minehub"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://minehub:test-only@localhost:5432/minehub_test
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_URL: http://localhost:5173
+      BETTER_AUTH_SECRET: ci-only-secret-never-use-in-a-real-deployment
+      TEXTURE_DIR: ./data/test-textures
+      SIGNING_KEY_PATH: ./data/test-signing.pem
+      RUN_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx vp fmt --check
+      - run: npx vp lint --deny-warnings
+      - run: npx vp run build
+      - run: npx vp test run

@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client"
+  output = "../server/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role String @default("user")
+  banned Boolean @default(false)
+  banReason String?
+  banExpires DateTime?
+  twoFactorEnabled Boolean @default(false)
+  mustChangePassword Boolean @default(false)
+  featuredCharacterId String?
+  sessions Session[]
+  accounts Account[]
+  twoFactors TwoFactor[]
+  characters Character[]
+  credentials GameCredential[]
+  tokens GameToken[]
+  textures Texture[]
+  favorites Favorite[]
+  claims Claim[]
+  reports Report[]
+}
+
+model Session {
+  id String @id @default(uuid())
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  impersonatedBy String?
+  totpVerifiedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Account {
+  id String @id @default(uuid())
+  accountId String
+  providerId String
+  userId String
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Verification {
+  id String @id @default(uuid())
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+}
+
+model RateLimit {
+  id String @id @default(uuid())
+  key String @unique
+  count Int
+  lastRequest BigInt
+}
+
+model TwoFactor {
+  id String @id @default(uuid())
+  secret String
+  backupCodes String
+  userId String
+  verified Boolean @default(true)
+  failedVerificationCount Int @default(0)
+  lockedUntil DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Character {
+  id String @id @default(uuid())
+  name String
+  nameKey String @unique
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  skinId String?
+  capeId String?
+  skin Texture? @relation("CharacterSkin", fields: [skinId], references: [id], onDelete: SetNull)
+  cape Texture? @relation("CharacterCape", fields: [capeId], references: [id], onDelete: SetNull)
+  disabled Boolean @default(false)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tokens GameToken[]
+  legacyIdentities LegacyIdentity[]
+  @@index([userId, deletedAt])
+}
+
+model GameCredential {
+  id String @id @default(uuid())
+  name String
+  secretHash String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  revokedAt DateTime?
+  tokens GameToken[]
+  @@index([userId])
+}
+
+model GameToken {
+  id String @id @default(uuid())
+  tokenHash String @unique
+  clientToken String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String
+  credential GameCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  characterId String?
+  character Character? @relation(fields: [characterId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  refreshRequired Boolean @default(false)
+  @@index([userId, revokedAt])
+}
+
+model TextureBlob {
+  hash String @id
+  width Int
+  height Int
+  bytes Int
+  blocked Boolean @default(false)
+  createdAt DateTime @default(now())
+  textures Texture[]
+}
+
+model Texture {
+  id String @id @default(uuid())
+  name String
+  kind String
+  model String @default("default")
+  public Boolean @default(false)
+  removedAt DateTime?
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  hash String
+  blob TextureBlob @relation(fields: [hash], references: [hash])
+  createdAt DateTime @default(now())
+  favorites Favorite[]
+  skins Character[] @relation("CharacterSkin")
+  capes Character[] @relation("CharacterCape")
+  reports Report[]
+  @@index([userId, removedAt])
+  @@index([public, createdAt])
+}
+
+model Favorite {
+  userId String
+  textureId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  texture Texture @relation(fields: [textureId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@id([userId, textureId])
+}
+
+model GameServer {
+  id String @id @default(uuid())
+  key String @unique
+  name String
+  address String
+  queryHost String
+  queryPort Int @default(25565)
+  version String @default("")
+  description String @default("")
+  rules String @default("")
+  downloads Json @default("[]")
+  hidden Boolean @default(false)
+  sort Int @default(0)
+  status String @default("unknown")
+  online Int?
+  maxPlayers Int?
+  checkedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id String @id @default(uuid())
+  title String
+  body String @default("")
+  pinned Boolean @default(false)
+  publishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([publishedAt])
+}
+
+model ImportBatch {
+  id String @id @default(uuid())
+  digest String @unique
+  actorId String
+  count Int
+  createdAt DateTime @default(now())
+}
+
+model LegacyIdentity {
+  id String @id @default(uuid())
+  serverKey String
+  originalName String
+  nameKey String
+  characterId String
+  character Character @relation(fields: [characterId], references: [id])
+  claims Claim[]
+  createdAt DateTime @default(now())
+  @@unique([serverKey, nameKey])
+  @@unique([serverKey, characterId])
+}
+
+model Claim {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identityId String
+  identity LegacyIdentity @relation(fields: [identityId], references: [id])
+  evidence String
+  status String @default("pending")
+  resolution String?
+  reviewerId String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model Report {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  textureId String
+  texture Texture @relation(fields: [textureId], references: [id])
+  reason String
+  status String @default("pending")
+  resolution String?
+  reviewerId String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([status])
+}
+
+model SiteSettings {
+  id String @id @default("site")
+  name String @default("MineHub")
+  description String @default("")
+  registrationOpen Boolean @default(true)
+  characterLimit Int @default(3)
+  uploadLimit Int @default(100)
+  uploadBytes Int @default(1048576)
+  migrationEnabled Boolean @default(false)
+  migrationReady Boolean @default(false)
+  maintenanceMessage String @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+  actorId String?
+  action String
+  target String
+  details Json @default("{}")
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([actorId, action])
+}

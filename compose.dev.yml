@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: minehub
+      POSTGRES_PASSWORD: minehub
+      POSTGRES_DB: minehub
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - dev_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minehub"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:16379:6379"
+  mailpit:
+    image: axllent/mailpit:v1.29
+    ports:
+      - "127.0.0.1:11025:1025"
+      - "127.0.0.1:18025:8025"
+volumes:
+  dev_postgres:

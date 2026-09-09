@@ -111,6 +111,9 @@ export type Config = {
   migrationEnabled: boolean
   migrationReady: boolean
   maintenanceMessage: string
+  authImageLight: string
+  authImageDark: string
+  authImageCacheMinutes: number
 }
 export type Me = {
   user: User

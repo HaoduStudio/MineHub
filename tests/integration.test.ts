@@ -853,6 +853,48 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
         ).status
       ).toBe(400)
     })
+    it("publishes auth page artwork with an admin-controlled cache window", async () => {
+      const current = await settings()
+      const patch = await admin.call(
+        "/api/v1/admin/settings",
+        {
+          ...current,
+          authImageLight: "https://art.example.test/day.jpg",
+          authImageDark: "",
+          authImageCacheMinutes: 5,
+        },
+        "PATCH"
+      )
+      expect(patch.status, JSON.stringify(patch.data)).toBe(200)
+      const published = await guest.call("/api/v1/public/settings")
+      expect(published.data.authImageLight).toBe(
+        "https://art.example.test/day.jpg"
+      )
+      expect(published.data.authImageDark).toBe("")
+      expect(published.headers.get("cache-control")).toBe(
+        "public, max-age=300"
+      )
+      expect(
+        (
+          await admin.call(
+            "/api/v1/admin/settings",
+            { ...patch.data, authImageLight: "not-a-url" },
+            "PATCH"
+          )
+        ).status
+      ).toBe(400)
+      const uncached = await admin.call(
+        "/api/v1/admin/settings",
+        { ...patch.data, authImageCacheMinutes: 0 },
+        "PATCH"
+      )
+      expect(uncached.status).toBe(200)
+      expect(
+        (await guest.call("/api/v1/public/settings")).headers.get(
+          "cache-control"
+        )
+      ).toBe("no-store")
+    })
     it("fails closed with protocol-shaped errors when Redis is unavailable", async () => {
       redis.destroy()
       const response = await guest.call("/api/yggdrasil/authserver/validate", {

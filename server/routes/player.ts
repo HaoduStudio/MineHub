@@ -20,7 +20,16 @@ export const characterInclude = {
   legacyIdentities: { select: { serverKey: true, originalName: true } },
 } as const
 export const player = new Hono<AppEnv>()
-player.get("/public/settings", async (c) => c.json(await settings()))
+player.get("/public/settings", async (c) => {
+  const config = await settings()
+  c.header(
+    "Cache-Control",
+    config.authImageCacheMinutes > 0
+      ? `public, max-age=${config.authImageCacheMinutes * 60}`
+      : "no-store"
+  )
+  return c.json(config)
+})
 player.get("/public/announcements/:id", async (c) => {
   const item = await db.announcement.findFirst({
     where: { id: c.req.param("id"), publishedAt: { lte: new Date() } },

@@ -1482,6 +1482,7 @@ function SettingsForm({ initial }: { initial: Config }) {
       <TabsNav
         tabs={[
           { label: "基本", value: "basic" },
+          { label: "认证页", value: "auth" },
           { label: "注册与角色", value: "accounts" },
           { label: "材质", value: "textures" },
           { label: "服务", value: "services" },
@@ -1517,6 +1518,63 @@ function SettingsForm({ initial }: { initial: Config }) {
                   setDraft({ ...draft, maintenanceMessage: e.target.value })
                 }
               />
+            </>
+          ) : tab === "auth" ? (
+            <>
+              <InputField
+                label="日间模式图片链接"
+                value={draft.authImageLight}
+                onChange={(e) =>
+                  setDraft({ ...draft, authImageLight: e.target.value })
+                }
+                placeholder="留空则不显示图片"
+              />
+              <InputField
+                label="暗黑模式图片链接"
+                value={draft.authImageDark}
+                onChange={(e) =>
+                  setDraft({ ...draft, authImageDark: e.target.value })
+                }
+                placeholder="留空则不显示图片"
+              />
+              <div className="auth-preview">
+                {(
+                  [
+                    ["日间", draft.authImageLight],
+                    ["暗黑", draft.authImageDark],
+                  ] as const
+                ).map(([label, url]) => (
+                  <figure key={label}>
+                    <div className="thumb">
+                      {url ? (
+                        <img src={url} alt={`${label}模式预览`} />
+                      ) : (
+                        <span className="muted text-xs">未设置</span>
+                      )}
+                    </div>
+                    <figcaption>{label}模式</figcaption>
+                  </figure>
+                ))}
+              </div>
+              <InputField
+                label="访客缓存时长（分钟）"
+                type="number"
+                min={0}
+                max={10080}
+                value={draft.authImageCacheMinutes}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    authImageCacheMinutes: Number(e.target.value),
+                  })
+                }
+              />
+              <p className="form-hint">
+                该时长同时作为公开站点配置的浏览器缓存时间，期间后台修改不会立即对未登录访客生效；0 表示不缓存
+              </p>
+              <p className="form-hint">
+                默认图片来自 Wikimedia Commons（CC BY 3.0），替换为其他图片时请自行确认授权
+              </p>
             </>
           ) : tab === "accounts" ? (
             <>

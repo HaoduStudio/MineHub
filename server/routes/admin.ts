@@ -421,7 +421,13 @@ adminApi.post("/reports/:id/resolve", async (c) => {
 })
 const safeLink = z
   .url()
-  .refine((v) => ["https:", "http:"].includes(new URL(v).protocol))
+  .refine((v) => {
+    try {
+      return ["https:", "http:"].includes(new URL(v).protocol)
+    } catch {
+      return false
+    }
+  })
 const serverInput = z.object({
   key: z.string().regex(/^[a-z0-9_-]{1,48}$/),
   name: z.string().trim().min(1).max(64),
@@ -545,6 +551,9 @@ adminApi.patch("/settings", async (c) => {
       migrationEnabled: z.boolean(),
       migrationReady: z.boolean(),
       maintenanceMessage: z.string().max(500),
+      authImageLight: z.union([z.literal(""), safeLink]),
+      authImageDark: z.union([z.literal(""), safeLink]),
+      authImageCacheMinutes: z.number().int().min(0).max(10080),
     })
     .parse(await c.req.json())
   if (

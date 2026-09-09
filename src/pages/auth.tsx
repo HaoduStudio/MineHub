@@ -1,7 +1,9 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckCircle2, Mail } from "lucide-react"
 import { Brand } from "@/components/layout"
+import { useTheme } from "@/components/theme-provider"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { Button } from "@/components/ui/button"
 import {
   InputField,
@@ -35,6 +37,28 @@ export function Entry() {
     )
   return <Navigate to={session.data ? "/app" : "/login"} replace />
 }
+function useDark() {
+  const { theme } = useTheme()
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)")
+  return theme === "dark" || (theme === "system" && systemDark)
+}
+function AuthShell({ children }: { children: ReactNode }) {
+  const { data: config } = useData<Config>("/public/settings")
+  const image = useDark() ? config?.authImageDark : config?.authImageLight
+  return (
+    <div className="auth-page">
+      <div className="auth-art">
+        {image && <img src={image} alt="" />}
+        <div className="auth-art-scrim" />
+        <div className="auth-art-caption">
+          <strong>{config?.name || "MineHub"}</strong>
+          {config?.description && <p>{config.description}</p>}
+        </div>
+      </div>
+      <div className="auth-main">{children}</div>
+    </div>
+  )
+}
 export function AuthPage({
   mode,
 }: {
@@ -53,7 +77,7 @@ export function AuthPage({
     verify: "验证邮箱",
   }
   return (
-    <div className="auth-page">
+    <AuthShell>
       <div className="auth-card">
         <Brand />
         <h1>{titles[mode]}</h1>
@@ -211,7 +235,7 @@ export function AuthPage({
           <p className="muted mt-6 text-center">邮箱验证完成，可以登录了</p>
         )}
       </div>
-    </div>
+    </AuthShell>
   )
 }
 export function TwoFactorPage() {
@@ -224,7 +248,7 @@ export function TwoFactorPage() {
     [codes, setCodes] = useState<string[]>([]),
     [verified, setVerified] = useState(false)
   return (
-    <div className="auth-page">
+    <AuthShell>
       <div className="auth-card">
         <Brand />
         <h1>{setup ? "设置两步验证" : "两步验证"}</h1>
@@ -334,26 +358,34 @@ export function TwoFactorPage() {
           返回
         </Link>
       </div>
-    </div>
+    </AuthShell>
   )
 }
 export function ErrorPage({ status = 404 }: { status?: number }) {
   return (
-    <div className="auth-page">
-      <Brand />
-      <h1 className="mt-10">{status}</h1>
-      <p className="muted my-5">
-        {status === 403 ? "没有访问权限" : "页面不存在"}
-      </p>
-      <Button render={<Link to="/app" />}>返回概览</Button>
-    </div>
+    <AuthShell>
+      <div className="auth-card">
+        <Brand />
+        <h1>{status}</h1>
+        <p className="muted my-5 text-center">
+          {status === 403 ? "没有访问权限" : "页面不存在"}
+        </p>
+        <Button className="w-full" render={<Link to="/app" />}>
+          返回概览
+        </Button>
+      </div>
+    </AuthShell>
   )
 }
 export function RouteError({ error }: { error: unknown }) {
   return (
-    <div className="auth-page">
-      <p>{errorMessage(error)}</p>
-      <Button onClick={() => location.reload()}>重新加载</Button>
-    </div>
+    <AuthShell>
+      <div className="auth-card">
+        <p className="text-center">{errorMessage(error)}</p>
+        <Button className="mt-5 w-full" onClick={() => location.reload()}>
+          重新加载
+        </Button>
+      </div>
+    </AuthShell>
   )
 }

@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma"
 import { admin } from "better-auth/plugins/admin"
 import { twoFactor } from "better-auth/plugins/two-factor"
 import { passkey } from "@better-auth/passkey"
+import { captchaPaths, consumeCaptcha } from "./captcha"
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { db, settings } from "./db"
 import { env } from "./env"
@@ -105,6 +106,18 @@ export const auth = betterAuth({
   ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      const captchaScope = captchaPaths[ctx.path]
+      if (
+        captchaScope &&
+        !(await consumeCaptcha(
+          ctx.headers?.get("x-captcha-token"),
+          captchaScope
+        ))
+      )
+        throw new APIError("FORBIDDEN", {
+          code: "CAPTCHA_REQUIRED",
+          message: "请完成人机验证后重试",
+        })
       if (
         [
           "/sign-in/email",

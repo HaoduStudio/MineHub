@@ -15,6 +15,8 @@ import { db, settings } from "../server/db"
 import { redis, connectRedis } from "../server/redis"
 import { env } from "../server/env"
 import { initSigning, publicKey } from "../server/signing"
+import { captchaPaths } from "../server/captcha"
+import { solveCaptcha } from "./captcha-helper"
 
 const { mailbox } = vi.hoisted(() => ({
   mailbox: [] as { email: string; body: string }[],
@@ -40,6 +42,19 @@ class Client {
     })
     if (body !== undefined && !(body instanceof FormData))
       headers.set("content-type", "application/json")
+    const captchaScope = captchaPaths[path.replace(/^\/api\/auth/, "")]
+    if (captchaScope) {
+      const challenge = await this.call(
+        `/api/captcha/${captchaScope}/challenge`,
+        {}
+      )
+      const redeemed = await this.call(
+        `/api/captcha/${captchaScope}/redeem`,
+        solveCaptcha(challenge.data)
+      )
+      expect(redeemed.status, JSON.stringify(redeemed.data)).toBe(200)
+      headers.set("x-captcha-token", redeemed.data.token)
+    }
     const response = await app.request(`${env.BETTER_AUTH_URL}${path}`, {
       method,
       headers,
@@ -158,6 +173,35 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
     afterAll(async () => {
       if (redis.isOpen) redis.destroy()
       await db.$disconnect()
+    })
+
+    it("requires Cap verification on every protected auth API", async () => {
+      for (const path of Object.keys(captchaPaths)) {
+        const response = await app.request(
+          `${env.BETTER_AUTH_URL}/api/auth${path}`,
+          {
+            method: path.includes("generate-authenticate") ? "GET" : "POST",
+            headers: {
+              origin: env.BETTER_AUTH_URL,
+              "content-type": "application/json",
+            },
+            ...(path.includes("generate-authenticate")
+              ? {}
+              : {
+                  body: JSON.stringify({
+                    name: "Captcha test",
+                    email: "owner@example.test",
+                    password,
+                    newPassword: password,
+                    token: "invalid",
+                    callbackURL: "/login",
+                  }),
+                }),
+          }
+        )
+        expect(response.status, path).toBe(403)
+        expect((await response.json()).code, path).toBe("CAPTCHA_REQUIRED")
+      }
     })
 
     it("registers, rejects unverified email, and consumes the verification link", async () => {

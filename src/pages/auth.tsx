@@ -1,11 +1,12 @@
+import { useState, type ReactNode } from "react"
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
+import { CheckCircle2, Mail, Fingerprint } from "lucide-react"
+import { Captcha } from "@/components/captcha"
 import {
   signInWithPasskey,
   requirePasskeySupport,
   passkeyError,
 } from "@/lib/auth-client"
-import { useState, type ReactNode } from "react"
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
-import { CheckCircle2, Mail, Fingerprint } from "lucide-react"
 import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -68,13 +69,26 @@ export function AuthPage({
 }: {
   mode: "login" | "register" | "forgot" | "reset" | "verify"
 }) {
+  return <AuthPageForm key={mode} mode={mode} />
+}
+function AuthPageForm({
+  mode,
+}: {
+  mode: "login" | "register" | "forgot" | "reset" | "verify"
+}) {
   const navigate = useNavigate(),
     [params] = useSearchParams(),
     [sent, setSent] = useState(false),
     [email, setEmail] = useState(params.get("email") ?? "")
-  const { data: config } = useData<Config>("/public/settings")
+  const [captchaToken, setCaptchaToken] = useState("")
+  const [captchaVersion, setCaptchaVersion] = useState(0)
   const [passkeyBusy, setPasskeyBusy] = useState(false)
   const [passkeyFailure, setPasskeyFailure] = useState("")
+  function resetCaptcha() {
+    setCaptchaToken("")
+    setCaptchaVersion((value) => value + 1)
+  }
+  const { data: config } = useData<Config>("/public/settings")
   const titles = {
     login: "登录",
     register: "创建账户",
@@ -114,52 +128,59 @@ export function AuthPage({
                       : "登录"
             }
             onSubmit={async (form) => {
-              const password = formText(form, "password"),
-                address = formText(form, "email", email)
-              if (mode === "login") {
-                const response = await authRequest("/sign-in/email", {
-                  email: address,
-                  password,
-                })
-                await refresh()
-                void navigate(
-                  response.twoFactorRedirect ? "/two-factor" : "/app"
-                )
-              }
-              if (mode === "register") {
-                await authRequest("/sign-up/email", {
-                  name: form.get("name"),
-                  email: address,
-                  password,
-                  callbackURL: "/login?verified=1",
-                })
-                void navigate(
-                  `/verify-email?email=${encodeURIComponent(address)}`
-                )
-              }
-              if (mode === "forgot") {
-                await authRequest("/request-password-reset", {
-                  email: address,
-                  redirectTo: `${location.origin}/reset-password`,
-                })
-                setEmail(address)
-                setSent(true)
-              }
-              if (mode === "verify") {
-                await authRequest("/send-verification-email", {
-                  email: address,
-                  callbackURL: "/login?verified=1",
-                })
-                setSent(true)
-              }
-              if (mode === "reset") {
-                if (password !== form.get("confirm"))
-                  throw new Error("两次输入的密码不一致")
-                await authRequest("/reset-password", {
-                  newPassword: password,
-                  token: params.get("token"),
-                })
-                void navigate("/login")
+              if (!captchaToken) throw new Error("请先完成人机验证")
+              const submitAuth: typeof authRequest = (path, data) =>
+                authRequest(path, data, captchaToken)
+              try {
+                const password = formText(form, "password"),
+                  address = formText(form, "email", email)
+                if (mode === "login") {
+                  const response = await submitAuth("/sign-in/email", {
+                    email: address,
+                    password,
+                  })
+                  await refresh()
+                  void navigate(
+                    response.twoFactorRedirect ? "/two-factor" : "/app"
+                  )
+                }
+                if (mode === "register") {
+                  await submitAuth("/sign-up/email", {
+                    name: form.get("name"),
+                    email: address,
+                    password,
+                    callbackURL: "/login?verified=1",
+                  })
+                  void navigate(
+                    `/verify-email?email=${encodeURIComponent(address)}`
+                  )
+                }
+                if (mode === "forgot") {
+                  await submitAuth("/request-password-reset", {
+                    email: address,
+                    redirectTo: `${location.origin}/reset-password`,
+                  })
+                  setEmail(address)
+                  setSent(true)
+                }
+                if (mode === "verify") {
+                  await submitAuth("/send-verification-email", {
+                    email: address,
+                    callbackURL: "/login?verified=1",
+                  })
+                  setSent(true)
+                }
+                if (mode === "reset") {
+                  if (password !== form.get("confirm"))
+                    throw new Error("两次输入的密码不一致")
+                  await submitAuth("/reset-password", {
+                    newPassword: password,
+                    token: params.get("token"),
+                  })
+                  void navigate("/login")
+                }
+              } finally {
+                resetCaptcha()
               }
             }}
           >
@@ -225,6 +246,11 @@ export function AuthPage({
                 )}
               </>
             )}
+            <Captcha
+              key={`${mode}-${captchaVersion}`}
+              scope={mode}
+              onToken={setCaptchaToken}
+            />
             {mode === "login" && (
               <>
                 <Button
@@ -233,10 +259,14 @@ export function AuthPage({
                   loading={passkeyBusy}
                   onClick={async () => {
                     setPasskeyFailure("")
+                    if (!captchaToken) {
+                      setPasskeyFailure("请先完成人机验证")
+                      return
+                    }
                     setPasskeyBusy(true)
                     try {
                       requirePasskeySupport()
-                      const result = await signInWithPasskey()
+                      const result = await signInWithPasskey(captchaToken)
                       if (result.error)
                         throw new Error(passkeyError(result.error))
                       await refresh()
@@ -244,6 +274,7 @@ export function AuthPage({
                     } catch (error) {
                       setPasskeyFailure(errorMessage(error))
                     } finally {
+                      resetCaptcha()
                       setPasskeyBusy(false)
                     }
                   }}

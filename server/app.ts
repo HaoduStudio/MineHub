@@ -6,6 +6,7 @@ import { getConnInfo } from "@hono/node-server/conninfo"
 import { serveStatic } from "@hono/node-server/serve-static"
 import { ZodError } from "zod"
 import { auth } from "./auth"
+import { captcha } from "./captcha"
 import { db } from "./db"
 import { env } from "./env"
 import { redis, rateLimit } from "./redis"
@@ -92,6 +93,7 @@ app.use("/api/v1/*", async (c, next) => {
   await next()
 })
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
+app.route("/api/captcha", captcha)
 app.route("/api/v1/admin", adminApi)
 app.route("/api/v1", player)
 app.route("/api/yggdrasil", yggdrasil)

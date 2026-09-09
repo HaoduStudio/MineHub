@@ -3,8 +3,12 @@ import { passkeyClient } from "@better-auth/passkey/client"
 
 export const authClient = createAuthClient({ plugins: [passkeyClient()] })
 
-export function signInWithPasskey() {
-  return authClient.signIn.passkey()
+export function signInWithPasskey(captchaToken: string) {
+  // The plugin's initial options request only inherits client-level headers.
+  return createAuthClient({
+    plugins: [passkeyClient()],
+    fetchOptions: { headers: { "x-captcha-token": captchaToken } },
+  }).signIn.passkey()
 }
 
 export function requirePasskeySupport() {
@@ -19,6 +23,7 @@ export function passkeyError(error: {
   message?: string
   status?: number
 }) {
+  if (error.code === "CAPTCHA_REQUIRED") return "请完成人机验证后重试"
   if (error.code === "SESSION_NOT_FRESH") return "请重新登录后再添加通行密钥"
   if (error.code === "AUTH_CANCELLED" || error.code?.startsWith("ERROR_"))
     return "通行密钥操作已取消或未完成，请重试"

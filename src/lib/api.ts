@@ -64,12 +64,15 @@ export const authRequest = <
   T = { status?: boolean; twoFactorRedirect?: boolean },
 >(
   path: string,
-  data?: unknown
+  data?: unknown,
+  captchaToken?: string
 ) =>
-  request<T>(
-    `/api/auth${path}`,
-    data === undefined ? {} : { method: "POST", body: JSON.stringify(data) }
-  )
+  request<T>(`/api/auth${path}`, {
+    ...(data === undefined
+      ? {}
+      : { method: "POST", body: JSON.stringify(data) }),
+    ...(captchaToken ? { headers: { "x-captcha-token": captchaToken } } : {}),
+  })
 export const mutate = <T = unknown>(
   path: string,
   method: string,

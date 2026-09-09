@@ -50,6 +50,9 @@ export const auth = betterAuth({
         input: false,
       },
       featuredCharacterId: { type: "string", required: false, input: false },
+      avatarKind: { type: "string", required: false, input: false },
+      avatarHash: { type: "string", required: false, input: false },
+      avatarTextureId: { type: "string", required: false, input: false },
     },
     changeEmail: {
       enabled: true,

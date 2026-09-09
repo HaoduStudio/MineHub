@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
 import {
   Link,
   Navigate,
@@ -19,6 +19,10 @@ import {
   ClipboardList,
   LogOut,
   ChevronsUpDown,
+  ImageUp,
+  Sun,
+  Moon,
+  MonitorSmartphone,
 } from "lucide-react"
 import {
   SidebarProvider,
@@ -33,11 +37,19 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "./ui/sidebar"
-import { Menu, MenuTrigger, MenuPopup, MenuItem } from "./ui/menu"
+import {
+  Menu,
+  MenuTrigger,
+  MenuPopup,
+  MenuItem,
+  MenuSeparator,
+} from "./ui/menu"
 import { Button } from "./ui/button"
 import { useTheme } from "./theme-provider"
 import { useData, type Me, ApiError, authRequest, queryClient } from "@/lib/api"
-import { Loading, Failure, SelectBox, reportError } from "./common"
+import { Loading, Failure, SelectBox, Modal, reportError } from "./common"
+import { AvatarEditor } from "./avatar-editor"
+import { UserAvatar } from "./skin-preview"
 
 const userNav = [
   ["概览", "", Home],
@@ -71,8 +83,18 @@ function Navigation({ me, admin }: { me: Me; admin: boolean }) {
     navigate = useNavigate(),
     { setOpenMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
+  const [avatarOpen, setAvatarOpen] = useState(false)
   const base = admin ? "/admin" : "/app"
   const nav = admin ? adminNav : userNav
+  async function signOut() {
+    try {
+      await authRequest("/sign-out", {})
+      queryClient.clear()
+      void navigate("/login")
+    } catch (error) {
+      reportError(error)
+    }
+  }
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-5 pt-6 pb-5">
@@ -144,47 +166,69 @@ function Navigation({ me, admin }: { me: Me; admin: boolean }) {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="gap-4 px-5 pb-5">
-        <Menu>
-          <MenuTrigger
-            render={<Button variant="ghost" className="account-switch" />}
-          >
-            <span className="letter-avatar">
-              {me.user.name.slice(0, 1).toUpperCase()}
-            </span>
-            <span className="truncate">{me.user.name}</span>
-            <ChevronsUpDown className="ml-auto" />
-          </MenuTrigger>
-          <MenuPopup>
-            <MenuItem onClick={() => navigate("/app/settings")}>
-              账户设置
-            </MenuItem>
-            <MenuItem
-              onClick={async () => {
-                try {
-                  await authRequest("/sign-out", {})
-                  queryClient.clear()
-                  void navigate("/login")
-                } catch (error) {
-                  reportError(error)
-                }
-              }}
+      <SidebarFooter className="px-3 pb-4">
+        <div className="sidebar-account">
+          <Menu>
+            <MenuTrigger
+              render={<Button variant="ghost" className="account-switch" />}
             >
-              <LogOut />
-              退出登录
-            </MenuItem>
-          </MenuPopup>
-        </Menu>
-        <SelectBox
-          label="主题"
-          value={theme}
-          onChange={(v) => setTheme(v as "light" | "dark" | "system")}
-          options={[
-            { value: "light", label: "浅色模式" },
-            { value: "dark", label: "深色模式" },
-            { value: "system", label: "跟随系统" },
-          ]}
-        />
+              <UserAvatar user={me.user} skinHash={me.avatarTextureHash} />
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate font-medium">
+                  {me.user.name}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {me.user.email}
+                </span>
+              </span>
+              <ChevronsUpDown className="ml-auto" />
+            </MenuTrigger>
+            <MenuPopup align="start" className="w-(--anchor-width)">
+              <MenuItem onClick={() => navigate("/app/settings")}>
+                <Settings />
+                账户设置
+              </MenuItem>
+              <MenuItem onClick={() => setAvatarOpen(true)}>
+                <ImageUp />
+                头像设置
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem onClick={() => void signOut()}>
+                <LogOut />
+                退出登录
+              </MenuItem>
+            </MenuPopup>
+          </Menu>
+          <div className="sidebar-theme">
+            {theme === "dark" ? (
+              <Moon />
+            ) : theme === "light" ? (
+              <Sun />
+            ) : (
+              <MonitorSmartphone />
+            )}
+            <span>主题</span>
+            <SelectBox
+              label="主题"
+              className="ml-auto w-28 min-w-0"
+              value={theme}
+              onChange={(v) => setTheme(v as "light" | "dark" | "system")}
+              options={[
+                { value: "light", label: "浅色模式" },
+                { value: "dark", label: "深色模式" },
+                { value: "system", label: "跟随系统" },
+              ]}
+            />
+          </div>
+        </div>
+        <Modal
+          title="头像设置"
+          description="上传自定义头像，或使用角色皮肤的头部"
+          open={avatarOpen}
+          onOpenChange={setAvatarOpen}
+        >
+          <AvatarEditor me={me} />
+        </Modal>
       </SidebarFooter>
     </Sidebar>
   )

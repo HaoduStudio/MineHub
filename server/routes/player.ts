@@ -6,6 +6,12 @@ import { auth } from "../auth"
 import { signedIn, requireFresh, type AppEnv } from "../access"
 import { audit, characterName, fail, paging, secret, sha256 } from "../security"
 import { textureInclude, uploadTexture } from "../textures"
+import {
+  AVATAR_BYTES,
+  sanitizeAvatar,
+  saveAvatar,
+  unlinkAvatarIfUnused,
+} from "../avatars"
 import { identityLock } from "../migration"
 
 export const characterInclude = {
@@ -25,11 +31,22 @@ player.get("/public/announcements/:id", async (c) => {
 player.use("*", signedIn)
 player.get("/me", async (c) => {
   const identity = c.get("identity")
-  const session = await db.session.findUnique({
-    where: { id: identity.session.id },
-  })
+  const [session, avatarTexture] = await Promise.all([
+    db.session.findUnique({ where: { id: identity.session.id } }),
+    identity.user.avatarKind === "skin" && identity.user.avatarTextureId
+      ? db.texture.findFirst({
+          where: {
+            id: identity.user.avatarTextureId,
+            removedAt: null,
+            blob: { blocked: false },
+          },
+          select: { hash: true },
+        })
+      : null,
+  ])
   return c.json({
     user: identity.user,
+    avatarTextureHash: avatarTexture?.hash ?? null,
     adminVerified: !!session?.totpVerifiedAt,
     config: await settings(),
   })
@@ -52,6 +69,62 @@ player.patch("/me/featured", async (c) => {
     where: { id: c.get("identity").user.id },
     data: { featuredCharacterId: characterId },
   })
+  return c.json({ success: true })
+})
+player.post("/me/avatar", async (c) => {
+  const identity = c.get("identity")
+  const body = await c.req.parseBody()
+  if (!(body.file instanceof File)) fail(400, "请选择图片")
+  if (body.file.size > AVATAR_BYTES) fail(400, "头像图片不能超过 4MB")
+  const result = await sanitizeAvatar(
+    Buffer.from(await body.file.arrayBuffer())
+  )
+  const hash = await saveAvatar(result.bytes)
+  await db.user.update({
+    where: { id: identity.user.id },
+    data: { avatarKind: "upload", avatarHash: hash, avatarTextureId: null },
+  })
+  if (identity.user.avatarHash && identity.user.avatarHash !== hash)
+    await unlinkAvatarIfUnused(identity.user.avatarHash)
+  await audit(identity.user.id, "avatar.update", identity.user.id, {
+    kind: "upload",
+  })
+  return c.json({ success: true })
+})
+player.post("/me/avatar/skin", async (c) => {
+  const identity = c.get("identity")
+  const { textureId } = z
+    .object({ textureId: z.string() })
+    .parse(await c.req.json())
+  const userId = identity.user.id
+  const texture = await db.texture.findFirst({
+    where: {
+      id: textureId,
+      kind: "skin",
+      removedAt: null,
+      blob: { blocked: false },
+      OR: [{ userId }, { public: true }, { favorites: { some: { userId } } }],
+    },
+  })
+  if (!texture) fail(404, "无法使用该材质")
+  await db.user.update({
+    where: { id: userId },
+    data: { avatarKind: "skin", avatarTextureId: textureId, avatarHash: null },
+  })
+  if (identity.user.avatarHash)
+    await unlinkAvatarIfUnused(identity.user.avatarHash)
+  await audit(userId, "avatar.update", userId, { kind: "skin" })
+  return c.json({ success: true })
+})
+player.delete("/me/avatar", async (c) => {
+  const identity = c.get("identity")
+  await db.user.update({
+    where: { id: identity.user.id },
+    data: { avatarKind: null, avatarHash: null, avatarTextureId: null },
+  })
+  if (identity.user.avatarHash)
+    await unlinkAvatarIfUnused(identity.user.avatarHash)
+  await audit(identity.user.id, "avatar.delete", identity.user.id)
   return c.json({ success: true })
 })
 player.post("/me/delete", async (c) => {

@@ -12,6 +12,7 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().default("redis://localhost:16379"),
   TEXTURE_DIR: z.string().default("./data/textures"),
+  AVATAR_DIR: z.string().default("./data/avatars"),
   SIGNING_KEY_PATH: z.string().default("./data/signing.pem"),
   SMTP_HOST: z.string().default("localhost"),
   SMTP_PORT: z.coerce.number().default(11025),

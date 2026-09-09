@@ -9,6 +9,7 @@ services:
       DATABASE_URL: postgresql://minehub:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/minehub
       REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379
       TEXTURE_DIR: /app/data/textures
+      AVATAR_DIR: /app/data/avatars
       SIGNING_KEY_PATH: /app/data/signing.pem
     ports:
       - "127.0.0.1:3000:3000"

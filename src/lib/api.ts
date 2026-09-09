@@ -95,6 +95,9 @@ export type User = {
   twoFactorEnabled: boolean
   mustChangePassword: boolean
   featuredCharacterId?: string
+  avatarKind: "upload" | "skin" | null
+  avatarHash: string | null
+  avatarTextureId: string | null
   createdAt: string
   banReason?: string
 }
@@ -109,7 +112,12 @@ export type Config = {
   migrationReady: boolean
   maintenanceMessage: string
 }
-export type Me = { user: User; adminVerified: boolean; config: Config }
+export type Me = {
+  user: User
+  avatarTextureHash: string | null
+  adminVerified: boolean
+  config: Config
+}
 export type Texture = {
   id: string
   name: string

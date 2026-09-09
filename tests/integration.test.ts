@@ -362,6 +362,64 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
         ).status
       ).toBe(404)
     })
+    it("switches avatars between uploads and skins, serving and cleaning up files", async () => {
+      const form = new FormData()
+      form.set(
+        "file",
+        new File(
+          [
+            await sharp({
+              create: {
+                width: 300,
+                height: 200,
+                channels: 4,
+                background: "#f59e0b",
+              },
+            })
+              .png()
+              .toBuffer(),
+          ],
+          "avatar.png",
+          { type: "image/png" }
+        )
+      )
+      expect((await owner.call("/api/v1/me/avatar", form)).status).toBe(200)
+      let me = await owner.call("/api/v1/me")
+      expect(me.data.user.avatarKind).toBe("upload")
+      const avatarHash = me.data.user.avatarHash
+      expect(avatarHash).toMatch(/^[a-f0-9]{64}$/)
+      expect(
+        (await app.request(`${env.BETTER_AUTH_URL}/avatars/${avatarHash}`))
+          .status
+      ).toBe(200)
+      expect(
+        (await app.request(`${env.BETTER_AUTH_URL}/avatars/not-a-hash`)).status
+      ).toBe(404)
+      expect(
+        (await owner.call("/api/v1/me/avatar/skin", { textureId })).status
+      ).toBe(200)
+      me = await owner.call("/api/v1/me")
+      expect(me.data.user.avatarKind).toBe("skin")
+      expect(me.data.user.avatarTextureId).toBe(textureId)
+      expect(me.data.avatarTextureHash).toBe(textureHash)
+      expect(
+        (await app.request(`${env.BETTER_AUTH_URL}/avatars/${avatarHash}`))
+          .status
+      ).toBe(404)
+      expect(
+        (
+          await stranger.call("/api/v1/me/avatar/skin", {
+            textureId: "missing",
+          })
+        ).status
+      ).toBe(404)
+      expect(
+        (await owner.call("/api/v1/me/avatar", undefined, "DELETE")).status
+      ).toBe(200)
+      me = await owner.call("/api/v1/me")
+      expect(me.data.user.avatarKind).toBeNull()
+      expect(me.data.avatarTextureHash).toBeNull()
+    })
     it("issues independent game credentials and validates signed skin profiles", async () => {
       const credential = await owner.call("/api/v1/credentials", {
         name: "Test launcher",

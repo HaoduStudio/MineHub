@@ -8,6 +8,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { LauncherConnect } from "@/components/launcher-connect"
+import { AvatarEditor } from "@/components/avatar-editor"
 import {
   Heading,
   TabsNav,
@@ -56,6 +57,10 @@ function ProfileSettings({ me }: { me: Me }) {
     [deleting, setDeleting] = useState(false)
   return (
     <>
+      <section className="form-section">
+        <h2>头像</h2>
+        <AvatarEditor me={me} />
+      </section>
       <section className="form-section">
         <h2>个人资料</h2>
         <ActionForm

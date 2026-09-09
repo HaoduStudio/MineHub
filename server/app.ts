@@ -10,6 +10,7 @@ import { db } from "./db"
 import { env } from "./env"
 import { redis, rateLimit } from "./redis"
 import { readTexture } from "./textures"
+import { readAvatar } from "./avatars"
 import { player } from "./routes/player"
 import { adminApi } from "./routes/admin"
 import { yggdrasil } from "./yggdrasil"
@@ -96,6 +97,13 @@ app.route("/api/v1", player)
 app.route("/api/yggdrasil", yggdrasil)
 app.get("/textures/:hash", async (c) => {
   const bytes = await readTexture(c.req.param("hash"))
+  c.header("Content-Type", "image/png")
+  c.header("X-Content-Type-Options", "nosniff")
+  c.header("Cache-Control", "public, max-age=0, must-revalidate")
+  return c.body(new Uint8Array(bytes))
+})
+app.get("/avatars/:hash", async (c) => {
+  const bytes = await readAvatar(c.req.param("hash"))
   c.header("Content-Type", "image/png")
   c.header("X-Content-Type-Options", "nosniff")
   c.header("Cache-Control", "public, max-age=0, must-revalidate")

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Pause, Play, RotateCcw, UserRound } from "lucide-react"
 import { Button } from "./ui/button"
+import type { User } from "@/lib/api"
 
 export function SkinHead({
   hash,
@@ -41,6 +42,32 @@ export function SkinHead({
   ) : (
     <span className="letter-avatar" style={{ width: size, height: size }}>
       {name.slice(0, 1).toUpperCase()}
+    </span>
+  )
+}
+export function UserAvatar({
+  user,
+  skinHash,
+  size = 34,
+}: {
+  user: Pick<User, "name" | "avatarKind" | "avatarHash">
+  skinHash?: string | null
+  size?: number
+}) {
+  if (user.avatarKind === "upload" && user.avatarHash)
+    return (
+      <img
+        src={`/avatars/${user.avatarHash}`}
+        alt={user.name}
+        className="user-avatar"
+        style={{ width: size, height: size }}
+      />
+    )
+  if (user.avatarKind === "skin" && skinHash)
+    return <SkinHead hash={skinHash} name={user.name} size={size} />
+  return (
+    <span className="letter-avatar" style={{ width: size, height: size }}>
+      {user.name.slice(0, 1).toUpperCase()}
     </span>
   )
 }

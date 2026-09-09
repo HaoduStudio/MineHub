@@ -46,7 +46,14 @@ import {
 } from "./ui/menu"
 import { Button } from "./ui/button"
 import { useTheme } from "./theme-provider"
-import { useData, type Me, ApiError, authRequest, queryClient } from "@/lib/api"
+import {
+  useData,
+  type Me,
+  type Config,
+  ApiError,
+  authRequest,
+  queryClient,
+} from "@/lib/api"
 import { Loading, Failure, SelectBox, Modal, reportError } from "./common"
 import { AvatarEditor } from "./avatar-editor"
 import { UserAvatar } from "./skin-preview"
@@ -76,6 +83,39 @@ export function Brand() {
       <Box className="size-8" strokeWidth={1.5} />
       <span>MineHub</span>
     </Link>
+  )
+}
+export function SiteFooter({
+  config,
+  className = "site-footer",
+}: {
+  config?: Config
+  className?: string
+}) {
+  const icp = config?.icpNumber?.trim()
+  const police = config?.policeNumber?.trim()
+  if (!icp && !police) return null
+  return (
+    <div className={className}>
+      {icp && (
+        <a
+          href="https://beian.miit.gov.cn/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          {icp}
+        </a>
+      )}
+      {police && (
+        <a
+          href="https://beian.mps.gov.cn/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          {police}
+        </a>
+      )}
+    </div>
   )
 }
 function Navigation({ me, admin }: { me: Me; admin: boolean }) {
@@ -167,6 +207,7 @@ function Navigation({ me, admin }: { me: Me; admin: boolean }) {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="px-3 pb-4">
+        <SiteFooter config={me.config} className="sidebar-beian" />
         <div className="sidebar-account">
           <Menu>
             <MenuTrigger

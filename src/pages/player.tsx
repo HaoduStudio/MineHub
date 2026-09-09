@@ -45,11 +45,13 @@ import {
   notify,
   reportError,
 } from "@/components/common"
+import { SiteFooter } from "@/components/layout"
 import {
   useData,
   mutate,
   refresh,
   type Me,
+  type Config,
   type Character,
   type Texture,
   type Page,
@@ -1192,7 +1194,8 @@ export function AnnouncementRead({
   standalone?: boolean
 }) {
   const { id } = useParams(),
-    query = useData<Announcement>(`/public/announcements/${id}`)
+    query = useData<Announcement>(`/public/announcements/${id}`),
+    config = useData<Config>("/public/settings", standalone)
   return (
     <div className={standalone ? "reading" : undefined}>
       {query.isPending ? (
@@ -1206,6 +1209,7 @@ export function AnnouncementRead({
           <article className="markdown max-w-3xl">
             <ReactMarkdown skipHtml>{query.data.body}</ReactMarkdown>
           </article>
+          {standalone && <SiteFooter config={config.data} />}
         </>
       )}
     </div>

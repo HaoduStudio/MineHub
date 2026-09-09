@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: ghcr.io/haodustudio/minehub:latest
     restart: unless-stopped
     env_file: .env
     environment:

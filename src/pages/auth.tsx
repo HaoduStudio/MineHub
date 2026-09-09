@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { CheckCircle2, Mail } from "lucide-react"
-import { Brand } from "@/components/layout"
+import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,7 +49,10 @@ function AuthShell({ children }: { children: ReactNode }) {
           {config?.description && <p>{config.description}</p>}
         </div>
       </div>
-      <div className="auth-main">{children}</div>
+      <div className="auth-main">
+        <div className="auth-body">{children}</div>
+        <SiteFooter config={config} />
+      </div>
     </div>
   )
 }

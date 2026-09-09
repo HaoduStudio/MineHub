@@ -935,6 +935,41 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
       expect(reset.data.themeColorLight).toBe("")
       expect(reset.data.themeColorDark).toBe("")
     })
+    it("stores optional ICP and police filing numbers and clears them", async () => {
+      const current = await settings()
+      const patch = await admin.call(
+        "/api/v1/admin/settings",
+        {
+          ...current,
+          icpNumber: "京ICP备00000000号-1",
+          policeNumber: "京公网安备00000000000000号",
+        },
+        "PATCH"
+      )
+      expect(patch.status, JSON.stringify(patch.data)).toBe(200)
+      expect(patch.data.icpNumber).toBe("京ICP备00000000号-1")
+      const published = await guest.call("/api/v1/public/settings")
+      expect(published.data.icpNumber).toBe("京ICP备00000000号-1")
+      expect(published.data.policeNumber).toBe("京公网安备00000000000000号")
+      expect(
+        (
+          await admin.call(
+            "/api/v1/admin/settings",
+            { ...patch.data, icpNumber: "x".repeat(65) },
+            "PATCH"
+          )
+        ).status
+      ).toBe(400)
+      const cleared = await admin.call(
+        "/api/v1/admin/settings",
+        { ...patch.data, icpNumber: "", policeNumber: "" },
+        "PATCH"
+      )
+      expect(cleared.status, JSON.stringify(cleared.data)).toBe(200)
+      const reset = await guest.call("/api/v1/public/settings")
+      expect(reset.data.icpNumber).toBe("")
+      expect(reset.data.policeNumber).toBe("")
+    })
     it("fails closed with protocol-shaped errors when Redis is unavailable", async () => {
       redis.destroy()
       const response = await guest.call("/api/yggdrasil/authserver/validate", {

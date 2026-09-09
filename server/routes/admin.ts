@@ -555,6 +555,8 @@ adminApi.patch("/settings", async (c) => {
       authImageCacheMinutes: z.number().int().min(0).max(10080),
       themeColorLight: hexColor,
       themeColorDark: hexColor,
+      icpNumber: z.string().trim().max(64),
+      policeNumber: z.string().trim().max(64),
     })
     .parse(await c.req.json())
   if (

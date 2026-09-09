@@ -117,6 +117,8 @@ export type Config = {
   authImageCacheMinutes: number
   themeColorLight: string
   themeColorDark: string
+  icpNumber: string
+  policeNumber: string
 }
 export type Me = {
   user: User

@@ -15,12 +15,12 @@
 | `SMTP_USER`、`SMTP_PASSWORD` | SMTP 服务账密                                           |
 | `SMTP_FROM`                  | 发信地址                                                |
 
-随后可 Clone 本仓库，本地构建并运行 Docker 镜像。
+随后 Clone 本仓库并拉取发布镜像。
 
 其中，管理员账户需要使用 `admin:create` 去创建，运行脚本成功后命令行将会显示临时密码。
 
 ```sh
-docker compose build
+docker compose pull
 docker compose up -d postgres redis
 docker compose run --rm app npm run keys:init
 docker compose run --rm app npm run db:migrate
@@ -42,10 +42,12 @@ location / {
 
 ## 升级
 
-1. 暂停 Docker 容器。
-2. 拉取最新 MineHub 代码，并构建 Docker 镜像。
-3. 运行 `docker compose run --rm app npm run db:migrate`。
-4. 启动 Docker 容器，并检查数据一致性。
+```sh
+git pull
+docker compose pull app
+docker compose run --rm app npm run db:migrate
+docker compose up -d app
+```
 
 ## 备份
 

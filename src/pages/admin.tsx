@@ -1740,6 +1740,25 @@ function SettingsForm({ initial }: { initial: Config }) {
                   setDraft({ ...draft, maintenanceMessage: e.target.value })
                 }
               />
+              <InputField
+                label="ICP 备案号"
+                value={draft.icpNumber}
+                onChange={(e) =>
+                  setDraft({ ...draft, icpNumber: e.target.value })
+                }
+                placeholder="留空则不显示，例如 京ICP备00000000号-1"
+              />
+              <InputField
+                label="公安联网备案号"
+                value={draft.policeNumber}
+                onChange={(e) =>
+                  setDraft({ ...draft, policeNumber: e.target.value })
+                }
+                placeholder="留空则不显示，例如 京公网安备00000000000000号"
+              />
+              <p className="form-hint">
+                备案号显示在公开页面底部与侧边栏底部，留空则不显示
+              </p>
             </>
           ) : tab === "theme" ? (
             <ThemePanel draft={draft} setDraft={setDraft} />

@@ -18,11 +18,7 @@ import {
 import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { OTPField, OTPFieldInput } from "@/components/ui/otp-field"
 import { Field, FieldLabel } from "@/components/ui/field"
 import {

@@ -4,6 +4,8 @@ import { CheckCircle2, Mail } from "lucide-react"
 import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import { OTPField, OTPFieldInput } from "@/components/ui/otp-field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import {
   InputField,
   ActionForm,
@@ -242,6 +244,7 @@ export function TwoFactorPage() {
   const { data: me } = useData<Me>("/me", setup)
   const [backup, setBackup] = useState(false),
     [qr, setQr] = useState(""),
+    [setupKey, setSetupKey] = useState(""),
     [codes, setCodes] = useState<string[]>([]),
     [verified, setVerified] = useState(false)
   return (
@@ -283,6 +286,9 @@ export function TwoFactorPage() {
               }>("/two-factor/enable", { password: form.get("password") })
               const { toDataURL } = await import("qrcode")
               setQr(await toDataURL(response.totpURI))
+              setSetupKey(
+                new URL(response.totpURI).searchParams.get("secret") ?? ""
+              )
               setCodes(response.backupCodes)
             }}
           >
@@ -327,19 +333,41 @@ export function TwoFactorPage() {
                 <p className="form-hint text-center">
                   使用验证器扫描二维码，然后输入验证码
                 </p>
+                {setupKey && (
+                  <>
+                    <CopyButton value={setupKey} label="复制一次性代码" />
+                    <p className="form-hint text-center">
+                      无法扫码？复制设置密钥，在验证器中手动添加账户
+                    </p>
+                    <code className="text-center text-sm break-all select-all">
+                      {setupKey}
+                    </code>
+                  </>
+                )}
               </>
             )}
-            <InputField
-              label={backup ? "恢复码" : "验证码"}
-              name="code"
-              inputMode={backup ? "text" : "numeric"}
-              minLength={backup ? undefined : 6}
-              maxLength={backup ? undefined : 6}
-              pattern={backup ? undefined : "[0-9]{6}"}
-              autoComplete="one-time-code"
-              required
-              autoFocus
-            />
+            {backup ? (
+              <InputField
+                key="backup"
+                label="恢复码"
+                name="code"
+                required
+                autoFocus
+                autoComplete="off"
+              />
+            ) : (
+              <Field key="totp" className="items-center">
+                <FieldLabel>验证码</FieldLabel>
+                <OTPField name="code" length={6} required autoFocus>
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <OTPFieldInput
+                      key={index}
+                      aria-label={`第 ${index + 1} 位验证码`}
+                    />
+                  ))}
+                </OTPField>
+              </Field>
+            )}
           </ActionForm>
         )}
         {!setup && (

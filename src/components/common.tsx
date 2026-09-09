@@ -185,6 +185,7 @@ export function CopyButton({
       variant="outline"
       size={label ? "default" : "icon"}
       aria-label={label ?? "复制"}
+      type="button"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value)

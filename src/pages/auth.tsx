@@ -2,7 +2,13 @@ import { useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { DEFAULT_HITOKOTO_URL, fetchHitokoto } from "@/lib/hitokoto"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
-import { CheckCircle2, Mail, Fingerprint } from "lucide-react"
+import {
+  CheckCircle2,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  Mail,
+  Fingerprint,
+} from "lucide-react"
 import { Captcha } from "@/components/captcha"
 import {
   signInWithPasskey,
@@ -12,6 +18,11 @@ import {
 import { Brand, SiteFooter } from "@/components/layout"
 import { useDark } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { OTPField, OTPFieldInput } from "@/components/ui/otp-field"
 import { Field, FieldLabel } from "@/components/ui/field"
 import {
@@ -126,7 +137,11 @@ function AuthPageForm({
         <Brand />
         <h1>{titles[mode]}</h1>
         {params.get("error") && (
-          <p className="form-error mb-5">链接已失效，请重新申请</p>
+          <Alert className="mb-5" variant="error">
+            <CircleAlertIcon />
+            <AlertTitle>邮箱验证失败</AlertTitle>
+            <AlertDescription>链接已失效，请重新申请</AlertDescription>
+          </Alert>
         )}
         {sent ? (
           <div className="form-stack items-center text-center">
@@ -326,7 +341,11 @@ function AuthPageForm({
           )}
         </div>
         {params.get("verified") && (
-          <p className="muted mt-6 text-center">邮箱验证完成，可以登录了</p>
+          <Alert className="mt-6" variant="success">
+            <CircleCheckIcon />
+            <AlertTitle>邮箱验证完成</AlertTitle>
+            <AlertDescription>现在可以使用邮箱和密码登录</AlertDescription>
+          </Alert>
         )}
       </div>
     </AuthShell>

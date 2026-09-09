@@ -46,12 +46,6 @@ button:disabled {
   letter-spacing: -0.6px;
   text-decoration: none;
 }
-.panel-label {
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--foreground);
-}
 .mine-nav-item {
   height: 42px;
   padding: 0 14px;

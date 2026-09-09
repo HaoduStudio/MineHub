@@ -139,8 +139,8 @@ function Navigation({ me, admin }: { me: Me; admin: boolean }) {
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-5 pt-6 pb-5">
         <Brand />
-        <div className="mt-5">
-          {me.user.role === "admin" ? (
+        {me.user.role === "admin" && (
+          <div className="mt-5">
             <Menu>
               <MenuTrigger
                 render={
@@ -176,10 +176,8 @@ function Navigation({ me, admin }: { me: Me; admin: boolean }) {
                 </MenuItem>
               </MenuPopup>
             </Menu>
-          ) : (
-            <div className="panel-label">用户面板</div>
-          )}
-        </div>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent className="px-3">
         <SidebarMenu>

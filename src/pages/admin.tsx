@@ -22,7 +22,11 @@ import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "@/components/ui/menu"
-import { SkinHead, TextureThumbnail } from "@/components/skin-preview"
+import {
+  SkinHead,
+  TextureThumbnail,
+  UserAvatar,
+} from "@/components/skin-preview"
 import {
   Heading,
   Empty,
@@ -280,7 +284,11 @@ export function AdminUsers() {
                 </td>
                 <td>
                   <Link className="name-cell" to={`/admin/users/${user.id}`}>
-                    <SkinHead name={user.name} size={28} />
+                    <UserAvatar
+                      user={user}
+                      skinHash={user.avatarTextureHash}
+                      size={28}
+                    />
                     <strong>{user.name}</strong>
                   </Link>
                 </td>

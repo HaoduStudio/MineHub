@@ -71,7 +71,29 @@ adminApi.get("/users", async (c) => {
     }),
     db.user.count({ where }),
   ])
-  return c.json({ items, total, page, limit })
+  const textureIds = items.flatMap((u) =>
+    u.avatarKind === "skin" && u.avatarTextureId ? [u.avatarTextureId] : []
+  )
+  const textures = textureIds.length
+    ? await db.texture.findMany({
+        where: {
+          id: { in: textureIds },
+          removedAt: null,
+          blob: { blocked: false },
+        },
+        select: { id: true, hash: true },
+      })
+    : []
+  const hashes = new Map(textures.map((t) => [t.id, t.hash]))
+  return c.json({
+    items: items.map((u) => ({
+      ...u,
+      avatarTextureHash: hashes.get(u.avatarTextureId ?? "") ?? null,
+    })),
+    total,
+    page,
+    limit,
+  })
 })
 adminApi.post("/users", async (c) => {
   requireFresh(c.get("identity"))

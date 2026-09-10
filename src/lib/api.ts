@@ -102,6 +102,7 @@ export type User = {
   avatarKind: "upload" | "skin" | null
   avatarHash: string | null
   avatarTextureId: string | null
+  avatarTextureHash?: string | null
   createdAt: string
   banReason?: string
 }

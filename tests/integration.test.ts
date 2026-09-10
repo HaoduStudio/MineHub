@@ -446,6 +446,11 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
       expect(me.data.user.avatarKind).toBe("skin")
       expect(me.data.user.avatarTextureId).toBe(textureId)
       expect(me.data.avatarTextureHash).toBe(textureHash)
+      let listed = await admin.call("/api/v1/admin/users")
+      expect(
+        listed.data.items.find((u) => u.id === me.data.user.id)
+          .avatarTextureHash
+      ).toBe(textureHash)
       expect(
         (await app.request(`${env.BETTER_AUTH_URL}/avatars/${avatarHash}`))
           .status

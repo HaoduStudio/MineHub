@@ -451,8 +451,7 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
         listed.data.items.find(
           (u: { id: string; avatarTextureHash: string | null }) =>
             u.id === me.data.user.id
-        )
-          .avatarTextureHash
+        ).avatarTextureHash
       ).toBe(textureHash)
       expect(
         (await app.request(`${env.BETTER_AUTH_URL}/avatars/${avatarHash}`))

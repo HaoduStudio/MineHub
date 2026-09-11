@@ -448,7 +448,10 @@ describe.skipIf(process.env.RUN_INTEGRATION !== "1")(
       expect(me.data.avatarTextureHash).toBe(textureHash)
       let listed = await admin.call("/api/v1/admin/users")
       expect(
-        listed.data.items.find((u) => u.id === me.data.user.id)
+        listed.data.items.find(
+          (u: { id: string; avatarTextureHash: string | null }) =>
+            u.id === me.data.user.id
+        )
           .avatarTextureHash
       ).toBe(textureHash)
       expect(

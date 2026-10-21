@@ -109,7 +109,10 @@ export async function queryServer(host: string, port: number) {
       socket.on("end", () => finish(new Error("Incomplete server response")))
       socket.on("data", (chunk) => {
         try {
-          data = Buffer.concat([data, chunk])
+          const chunkBuffer = Buffer.isBuffer(chunk)
+            ? chunk
+            : Buffer.from(chunk)
+          data = Buffer.concat([data, chunkBuffer])
           if (data.length > 1048576)
             return finish(new Error("Status too large"))
           const length = readVarint(data, 0)
